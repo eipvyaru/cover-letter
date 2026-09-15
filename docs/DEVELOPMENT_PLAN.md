@@ -1,6 +1,7 @@
 # План разработки `cover-letter`
 
-Статус: готов к исполнению после утверждения ТЗ 1.1.  
+Статус: готов к исполнению после утверждения ТЗ 1.1.
+
 Базовая конфигурация: `cover-letter.ai-run.ru`, web `8792`, зарезервированный Playwright `8791`.
 
 ## Принципы выполнения
@@ -180,4 +181,3 @@
 9. complete automated test suite;
 10. production deployment and operations documentation;
 11. acceptance fixes and release-ready state.
-

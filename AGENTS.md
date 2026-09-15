@@ -71,4 +71,3 @@
 - Use non-interactive Git commands. If no repository exists, initialize a local repository with the `main` branch.
 - Do not add a remote or push commits unless the user explicitly requests it.
 - Update README and deployment files in the same change whenever commands, paths, domain names, or ports change.
-
