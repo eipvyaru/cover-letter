@@ -1,0 +1,4 @@
+import {configuredModels,routerSettings,runtimeSettings} from '@/server/config/llm-models';
+import {isAdministrator} from '@/server/services/admin-auth';
+export const runtime='nodejs';
+export async function GET(request:Request){try{const settings=runtimeSettings();const admin=await isAdministrator(request,settings);const allModels=configuredModels(settings);const defaultModel=allModels.find(m=>m.isDefault)?.modelId||allModels[0]?.modelId||'';const models=admin?allModels:allModels.filter(m=>m.modelId===defaultModel);const router=routerSettings(settings);return Response.json({models,defaultModel,configured:!!(router.key&&router.endpoint&&models.length),playwrightConfigured:false,isAdmin:admin},{headers:{'Cache-Control':'no-store'}});}catch{return Response.json({error:'Ошибка конфигурации моделей.'},{status:500});}}

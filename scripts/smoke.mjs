@@ -1,0 +1,1 @@
+const base=process.env.SMOKE_BASE_URL||'http://127.0.0.1:8792';for(const path of ['/api/health','/api/ready']){const response=await fetch(base+path);if(!response.ok)throw new Error(`${path}: HTTP ${response.status}`);}console.log('Smoke checks passed.');

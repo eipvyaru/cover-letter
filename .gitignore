@@ -1,0 +1,12 @@
+.env
+.env.local
+.env.production
+data/
+node_modules/
+.next/
+coverage/
+playwright-report/
+test-results/
+.sites-runtime/
+*.log
+*.tsbuildinfo

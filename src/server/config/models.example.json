@@ -1,0 +1,1 @@
+[{"name":"GPT-5.6 Luna","modelId":"openai/gpt-5.6-luna","enabled":true,"isDefault":true,"supportsTemperature":false},{"name":"Claude Sonnet 5","modelId":"anthropic/claude-sonnet-5","enabled":true,"supportsTemperature":true},{"name":"Gemini 2.5 Pro","modelId":"google/gemini-2.5-pro","enabled":true,"supportsTemperature":true}]

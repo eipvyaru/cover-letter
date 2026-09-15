@@ -1,0 +1,8 @@
+{
+  "slug": "cover-letter",
+  "serviceName": "cover-letter",
+  "port": 8792,
+  "siteDomain": "ai-run.ru",
+  "host": "cover-letter.ai-run.ru",
+  "playwrightPort": 8791
+}
