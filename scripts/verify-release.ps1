@@ -9,6 +9,10 @@ $failureMessage = $null
 
 Set-Location -LiteralPath $repositoryRoot
 
+# Git commit hooks export a relative GIT_INDEX_FILE. Nested worktree checkout
+# would resolve it inside the new worktree and fail before creating its index.
+Remove-Item -LiteralPath 'Env:GIT_INDEX_FILE' -ErrorAction SilentlyContinue
+
 function Invoke-CheckedCommand {
     param(
         [Parameter(Mandatory = $true)]
