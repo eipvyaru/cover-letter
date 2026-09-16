@@ -39,7 +39,7 @@ Playwright не устанавливается. Порт `8791` остаётся
 
 ```powershell
 cd C:\_Codex\cover-letter
-npm run verify:release
+npm.cmd run verify:release
 ```
 
 Состав автоматической проверки:
@@ -391,7 +391,7 @@ if ($currentBranch -ne 'main') { throw "Ожидалась ветка main, по
 git status --short
 if (git status --porcelain) { throw 'Рабочее дерево содержит незакоммиченные изменения.' }
 
-npm run verify:release
+npm.cmd run verify:release
 if ($LASTEXITCODE -ne 0) { throw 'Release-проверка завершилась ошибкой. Push и deployment запрещены.' }
 
 if (git status --porcelain) { throw 'После release-проверки рабочее дерево перестало быть чистым.' }
@@ -423,7 +423,7 @@ if ($remoteCommit -ne $releaseCommit) {
 Write-Host "GitHub подтверждён: $remoteCommit"
 ```
 
-Не продолжайте deployment, если `npm run verify:release`, `git push` или сравнение hash завершилось ошибкой. В следующих командах вместо `<RELEASE_COMMIT>` используйте подтверждённое значение `$releaseCommit`.
+Не продолжайте deployment, если `npm.cmd run verify:release`, `git push` или сравнение hash завершилось ошибкой. В следующих командах вместо `<RELEASE_COMMIT>` используйте подтверждённое значение `$releaseCommit`.
 
 ### 15.3. Обновление VPS
 
