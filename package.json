@@ -14,6 +14,7 @@
     "test": "vitest run",
     "db:migrate": "node scripts/migrate.mjs",
     "smoke": "node scripts/smoke.mjs",
+    "verify:release": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-release.ps1",
     "hooks:install": "git config core.hooksPath .githooks"
   },
   "dependencies": {

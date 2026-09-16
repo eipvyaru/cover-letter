@@ -48,6 +48,14 @@
 - Never commit the root `.env`, `data/.env.vps`, or any other file inside `data/`.
 - If synchronization fails, do not treat the `.env` modification as complete; report the failure and leave the last successfully generated `.env.vps` untouched.
 
+## Post-commit release readiness
+
+- After every successful local Git commit, the tracked `.githooks/post-commit` hook must run `scripts/verify-release.ps1` synchronously.
+- The script must verify Node.js `v24.18.0`, run `npm ci`, migrations, lint, typecheck, tests, the production build, a clean worktree check, and the sensitive-file tracking check from the deployment guide.
+- A successful run must report that the commit is ready for manual push to GitHub and deployment to the VPS.
+- A failed post-commit check cannot undo the commit. Report the commit as not ready and do not push or deploy it until `npm run verify:release` succeeds.
+- Never bypass either tracked Git hook with `--no-verify`.
+
 ## Database and system prompt changes
 
 - Every database schema change must be implemented as a new numbered migration. Never rewrite a migration that may already have been applied.

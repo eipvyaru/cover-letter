@@ -15,6 +15,8 @@
 
 Перед каждым локальным commit pre-commit hook автоматически синхронизирует `.env` в `data/.env.vps`. Ошибка синхронизации блокирует commit. Не используйте `--no-verify`.
 
+После каждого успешного локального commit post-commit hook автоматически выполняет полный набор release-проверок и сообщает, готов ли commit к ручной выгрузке в GitHub и deployment на VPS. Для повторного ручного запуска используйте `npm run verify:release`.
+
 Проверки: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`. `npm run smoke` ожидает запущенный сервер и не вызывает LLM.
 
 Production использует `/var/lib/cover-letter/system_prompt.md` и `/var/lib/cover-letter/cover-letter.sqlite`. Секреты, `data/`, рабочий промпт и БД запрещено добавлять в Git.

@@ -33,6 +33,17 @@ Playwright не устанавливается. Порт `8791` остаётся
 
 ## 3. Проверка проекта на Windows
 
+После каждого успешного локального commit эти проверки автоматически выполняет tracked post-commit hook. Он выводит итог `READY`, если commit готов к ручной выгрузке в GitHub и deployment на VPS, либо `NOT READY` с причиной. Уже созданный commit при ошибке проверки сохраняется, но выгружать и развёртывать его нельзя.
+
+Для повторного ручного запуска полного набора проверок выполните:
+
+```powershell
+cd C:\_Codex\cover-letter
+npm run verify:release
+```
+
+Состав автоматической проверки:
+
 ```powershell
 cd C:\_Codex\cover-letter
 node --version
