@@ -51,7 +51,7 @@
 ## Post-commit release readiness
 
 - After every successful local Git commit, the tracked `.githooks/post-commit` hook must run `scripts/verify-release.ps1` synchronously.
-- The script must verify Node.js `v24.18.0`, check the main worktree and sensitive-file tracking, then run `npm ci`, migrations, lint, typecheck, tests, and the production build in a temporary clean Git worktree so an active development server cannot lock dependencies.
+- The script must verify Node.js `v24.18.0`, check the main worktree and sensitive-file tracking, then run `npm ci`, `npm audit --audit-level=moderate`, migrations, lint, typecheck, tests, and the production build in a temporary clean Git worktree so an active development server cannot lock dependencies.
 - A successful run must report that the commit is ready for manual push to GitHub and deployment to the VPS.
 - A failed post-commit check cannot undo the commit. Report the commit as not ready and do not push or deploy it until `npm run verify:release` succeeds.
 - Never bypass either tracked Git hook with `--no-verify`.

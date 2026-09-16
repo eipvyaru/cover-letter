@@ -48,6 +48,7 @@ npm run verify:release
 cd C:\_Codex\cover-letter
 node --version
 npm ci
+npm audit --audit-level=moderate
 npm run db:migrate
 npm run lint
 npm run typecheck

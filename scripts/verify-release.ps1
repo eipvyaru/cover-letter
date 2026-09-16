@@ -77,6 +77,7 @@ try {
     $locationPushed = $true
 
     Invoke-CheckedCommand 'Clean dependency installation' { npm ci }
+    Invoke-CheckedCommand 'Dependency vulnerability audit' { npm audit --audit-level=moderate }
     Invoke-CheckedCommand 'Database migrations' { npm run db:migrate }
     Invoke-CheckedCommand 'Lint' { npm run lint }
     Invoke-CheckedCommand 'TypeScript typecheck' { npm run typecheck }
