@@ -21,11 +21,11 @@ Playwright не устанавливается. Порт `8791` остаётся
 
 ## 2. Значения для подстановки
 
-Замените в командах:
+Используйте согласованные значения и замените оставшиеся placeholders:
 
 - `<GITHUB_REPOSITORY>` — SSH URL приватного GitHub-репозитория;
-- `<VPS_HOST>` — IP или SSH-имя VPS;
-- `<SSH_PORT>` — SSH-порт, обычно `22`;
+- VPS: `170.168.112.47`, SSH-порт: `22`;
+- локальный SSH-ключ для VPS: `$env:USERPROFILE\.ssh\id_ed25519_vps`;
 - `<RELEASE_COMMIT>` — полный hash проверенного коммита;
 - `<PREVIOUS_COMMIT>` — commit для отката.
 
@@ -68,8 +68,8 @@ git rev-parse HEAD
 
 ## 5. Подключение к VPS
 
-```bash
-ssh -p <SSH_PORT> root@<VPS_HOST>
+```powershell
+ssh -i "$env:USERPROFILE\.ssh\id_ed25519_vps" -p 22 root@170.168.112.47
 ```
 
 Проверьте систему:
@@ -193,7 +193,7 @@ Build не должен вызывать LLM или обращаться к prod
 
 ```powershell
 scp -i "$env:USERPROFILE\.ssh\id_ed25519_vps" -P 22 .\data\.env.vps root@170.168.112.47:/root/cover-letter.env.new
-scp -P <SSH_PORT> .\data\system_prompt.md root@<VPS_HOST>:/root/cover-letter.prompt.new
+scp -i "$env:USERPROFILE\.ssh\id_ed25519_vps" -P 22 .\data\system_prompt.md root@170.168.112.47:/root/cover-letter.prompt.new
 ```
 
 На VPS:
