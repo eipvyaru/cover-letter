@@ -378,7 +378,54 @@ Real-LLM проверка расходует средства ProxyAPI и зап
 
 ## 15. Обновление
 
-Сначала локально выполните проверки, commit и ручной push. Запишите hash release-коммита.
+### 15.1. Обязательная проверка на Windows
+
+Все изменения должны быть уже зафиксированы локальным commit. Выполните команды в одном окне PowerShell:
+
+```powershell
+cd C:\_Codex\cover-letter
+
+$currentBranch = (git branch --show-current).Trim()
+if ($currentBranch -ne 'main') { throw "Ожидалась ветка main, получена: $currentBranch" }
+
+git status --short
+if (git status --porcelain) { throw 'Рабочее дерево содержит незакоммиченные изменения.' }
+
+npm run verify:release
+if ($LASTEXITCODE -ne 0) { throw 'Release-проверка завершилась ошибкой. Push и deployment запрещены.' }
+
+if (git status --porcelain) { throw 'После release-проверки рабочее дерево перестало быть чистым.' }
+$releaseCommit = (git rev-parse HEAD).Trim()
+git log -1 --oneline
+Write-Host "RELEASE_COMMIT=$releaseCommit"
+```
+
+В конце проверки должно появиться сообщение `READY: this commit passed all local checks and is ready for manual push to GitHub and deployment to the VPS.` Запишите выведенное значение `RELEASE_COMMIT`.
+
+### 15.2. Ручная выгрузка проверенного commit в GitHub
+
+Продолжайте в том же окне PowerShell, чтобы сохранилась переменная `$releaseCommit`:
+
+```powershell
+git remote -v
+git remote get-url origin
+
+git push origin main
+if ($LASTEXITCODE -ne 0) { throw 'Не удалось выполнить push в GitHub.' }
+
+$remoteLine = git ls-remote origin refs/heads/main
+if ($LASTEXITCODE -ne 0 -or -not $remoteLine) { throw 'Не удалось прочитать main из GitHub.' }
+$remoteCommit = ($remoteLine -split '\s+')[0]
+if ($remoteCommit -ne $releaseCommit) {
+  throw "GitHub main содержит $remoteCommit вместо $releaseCommit"
+}
+
+Write-Host "GitHub подтверждён: $remoteCommit"
+```
+
+Не продолжайте deployment, если `npm run verify:release`, `git push` или сравнение hash завершилось ошибкой. В следующих командах вместо `<RELEASE_COMMIT>` используйте подтверждённое значение `$releaseCommit`.
+
+### 15.3. Обновление VPS
 
 На VPS убедитесь, что системный backup актуален:
 
