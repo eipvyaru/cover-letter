@@ -192,7 +192,7 @@ Build не должен вызывать LLM или обращаться к prod
 На Windows:
 
 ```powershell
-scp -P <SSH_PORT> .\data\.env.vps root@<VPS_HOST>:/root/cover-letter.env.new
+scp -i "$env:USERPROFILE\.ssh\id_ed25519_vps" -P 22 .\data\.env.vps root@170.168.112.47:/root/cover-letter.env.new
 scp -P <SSH_PORT> .\data\system_prompt.md root@<VPS_HOST>:/root/cover-letter.prompt.new
 ```
 
