@@ -1,0 +1,23 @@
+[Unit]
+Description=Cover Letter Next.js application (root runtime)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/var/www/cover-letter
+EnvironmentFile=/var/www/cover-letter/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/cover-letter /var/cache/cover-letter
+
+[Install]
+WantedBy=multi-user.target
