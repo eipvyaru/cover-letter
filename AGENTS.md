@@ -28,12 +28,13 @@
 ## Synchronizing `.env` for VPS deployment
 
 - The root file `C:\_Codex\cover-letter\.env` is the local development configuration and may contain secrets.
-- After every creation, modification, deletion, or reformatting of the root `.env`, immediately run:
+- Before every local Git commit, the tracked `.githooks/pre-commit` hook must automatically run:
 
   ```powershell
   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync-vps-env.ps1
   ```
 
+- Configure the repository once with `npm run hooks:install`. Never bypass this hook with `--no-verify`.
 - The command must create or atomically replace `C:\_Codex\cover-letter\data\.env.vps`.
 - The generated `.env.vps` must preserve all variables, comments, ordering, and secret values from the root `.env`, except for these production path substitutions:
 

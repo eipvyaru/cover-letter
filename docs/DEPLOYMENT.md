@@ -198,25 +198,9 @@ npm run build
 
 Build не должен вызывать LLM, обращаться к production-БД или отправлять внешние сообщения.
 
-## 9. Подготовка `.env.vps` на Windows
+## 9. Передача конфигурации и промпта
 
-Корневой `.env` — единственный редактируемый источник конфигурации. После любого изменения выполните:
-
-```powershell
-cd C:\_Codex\cover-letter
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync-vps-env.ps1
-```
-
-Скрипт создаёт `data/.env.vps`, сохраняя секреты и заменяя только:
-
-```env
-SYSTEM_PROMPT_PATH=/var/lib/cover-letter/system_prompt.md
-DATABASE_PATH=/var/lib/cover-letter/cover-letter.sqlite
-```
-
-Не открывайте и не копируйте содержимое файла в чат, Git или журнал команд.
-
-## 10. Передача конфигурации и промпта
+Файл `data/.env.vps` автоматически обновляется pre-commit hook при каждом локальном commit. Ошибка синхронизации блокирует commit. Не используйте `git commit --no-verify`.
 
 С Windows передайте файлы во временные файлы домашнего каталога deployment-пользователя:
 
@@ -257,7 +241,7 @@ rm -f ~/cover-letter.env.new ~/cover-letter.prompt.new
 
 Не запускайте `cat`, `diff` или другие команды, печатающие значения `.env` или полный prompt.
 
-## 11. Миграции SQLite
+## 10. Миграции SQLite
 
 Запустите миграции от имени сервисного пользователя:
 
@@ -278,7 +262,7 @@ sudo stat -c '%U:%G %a %n' \
   /var/lib/cover-letter/cover-letter.sqlite
 ```
 
-## 12. Writable-кэш Next.js
+## 11. Writable-кэш Next.js
 
 После build замените каталог `.next/cache` ссылкой на выделенный writable-кэш:
 
@@ -292,7 +276,7 @@ ln -sfn /var/cache/cover-letter .next/cache
 
 После успешного запуска старый `.next/cache.build` можно удалить вручную.
 
-## 13. Установка systemd unit
+## 12. Установка systemd unit
 
 Проверьте путь npm:
 
@@ -328,7 +312,7 @@ curl --fail --silent http://127.0.0.1:8792/api/ready
 
 Ожидаются `127.0.0.1:8792`, `{"status":"ok"}` и `{"status":"ready"}`. Порта `0.0.0.0:8792` быть не должно.
 
-## 14. Установка Nginx и HTTPS
+## 13. Установка Nginx и HTTPS
 
 Если сертификат для домена уже существует, установите готовый конфиг:
 
@@ -357,7 +341,7 @@ sudo systemctl reload nginx
 
 Не изменяйте конфигурации других сайтов.
 
-## 15. Финальная проверка
+## 14. Финальная проверка
 
 На VPS:
 
@@ -384,7 +368,7 @@ sudo journalctl -u cover-letter.service -n 50 --no-pager
 
 Real-LLM проверка расходует средства ProxyAPI и выполняется только явно.
 
-## 16. Обновление приложения
+## 15. Обновление приложения
 
 ### Локально
 
@@ -427,9 +411,9 @@ curl --fail --silent http://127.0.0.1:8792/api/ready
 curl --fail --silent https://cover-letter.ai-run.ru/api/health
 ```
 
-Обычное обновление кода не заменяет `.env`, SQLite или системный промпт. При изменении `.env` сначала заново выполните локальную синхронизацию и отдельную защищённую передачу файла.
+Обычное обновление кода не заменяет `.env`, SQLite или системный промпт. Если `.env` изменялся, pre-commit hook уже обновил `data/.env.vps`; передайте этот файл отдельной защищённой операцией.
 
-## 17. Откат кода
+## 16. Откат кода
 
 Запишите текущий и предыдущий commit до обновления. Для отката:
 
@@ -446,7 +430,7 @@ curl --fail --silent http://127.0.0.1:8792/api/ready
 
 Не восстанавливайте старую SQLite поверх новых данных автоматически. Если откатываемый код несовместим с текущей схемой, остановитесь и используйте отдельно согласованный план восстановления системного снимка VPS.
 
-## 18. Диагностика
+## 17. Диагностика
 
 ```bash
 sudo systemctl status cover-letter.service --no-pager

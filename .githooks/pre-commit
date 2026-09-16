@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+echo "Synchronizing .env.vps (values remain redacted)..."
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-vps-env.ps1

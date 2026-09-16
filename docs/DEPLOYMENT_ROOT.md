@@ -185,25 +185,9 @@ npm run build
 
 Build не должен вызывать LLM или обращаться к production-БД.
 
-## 9. Подготовка `.env.vps`
+## 9. Передача `.env` и системного промпта
 
-На Windows после любого изменения `.env`:
-
-```powershell
-cd C:\_Codex\cover-letter
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync-vps-env.ps1
-```
-
-Полученный `data/.env.vps` содержит production-пути:
-
-```env
-SYSTEM_PROMPT_PATH=/var/lib/cover-letter/system_prompt.md
-DATABASE_PATH=/var/lib/cover-letter/cover-letter.sqlite
-```
-
-Не печатайте содержимое `.env` или `.env.vps` в терминал, чат или Git diff.
-
-## 10. Передача `.env` и системного промпта
+Файл `data/.env.vps` автоматически обновляется pre-commit hook при каждом локальном commit. Ошибка синхронизации блокирует commit. Не используйте `git commit --no-verify`.
 
 На Windows:
 
@@ -244,7 +228,7 @@ rm -f /root/cover-letter.env.new /root/cover-letter.prompt.new
 
 Не используйте `cat` или `diff` для проверки секретных файлов.
 
-## 11. Миграции
+## 10. Миграции
 
 ```bash
 cd /var/www/cover-letter
@@ -260,7 +244,7 @@ stat -c '%U:%G %a %n' \
   /var/lib/cover-letter/cover-letter.sqlite
 ```
 
-## 12. Кэш Next.js
+## 11. Кэш Next.js
 
 ```bash
 cd /var/www/cover-letter
@@ -272,7 +256,7 @@ ln -sfn /var/cache/cover-letter .next/cache
 
 После успешного запуска `.next/cache.build` можно удалить вручную.
 
-## 13. Systemd с запуском от root
+## 12. Systemd с запуском от root
 
 Проверьте абсолютный путь npm:
 
@@ -320,7 +304,7 @@ curl --fail --silent http://127.0.0.1:8792/api/ready
 
 Должен использоваться только `127.0.0.1:8792`, не `0.0.0.0:8792`.
 
-## 14. Nginx и HTTPS
+## 13. Nginx и HTTPS
 
 Если сертификат уже существует:
 
@@ -349,7 +333,7 @@ systemctl reload nginx
 
 Конфигурации других сайтов не изменяйте. Порты `8791` и `8792` наружу не открывайте.
 
-## 15. Проверка production
+## 14. Проверка production
 
 ```bash
 curl --fail --silent http://127.0.0.1:8792/api/health
@@ -364,7 +348,7 @@ journalctl -u cover-letter.service -n 50 --no-pager
 
 Real-LLM проверка расходует средства ProxyAPI и запускается только явно.
 
-## 16. Обновление
+## 15. Обновление
 
 Сначала локально выполните проверки, commit и ручной push. Запишите hash release-коммита.
 
@@ -390,7 +374,7 @@ curl --fail --silent https://cover-letter.ai-run.ru/api/health
 
 Обычное обновление не заменяет `.env`, SQLite или системный prompt.
 
-## 17. Откат
+## 16. Откат
 
 ```bash
 cd /var/www/cover-letter
@@ -405,7 +389,7 @@ curl --fail --silent http://127.0.0.1:8792/api/ready
 
 Не восстанавливайте старую SQLite автоматически поверх новых данных. При несовместимой схеме используйте отдельно согласованный системный снимок VPS.
 
-## 18. Диагностика
+## 17. Диагностика
 
 ```bash
 systemctl status cover-letter.service --no-pager

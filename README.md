@@ -8,10 +8,12 @@
 
 1. `npm ci`
 2. Скопировать `.env.example` в `.env` и заполнить значения локально.
-3. После изменения `.env`: `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync-vps-env.ps1`
+3. Однократно включить tracked Git hooks: `npm run hooks:install`.
 4. Создать `data/system_prompt.md` на основе согласованного рабочего промпта.
-5. `npm run db:migrate`
-6. `npm run dev`
+5. `npm run db:migrate`.
+6. `npm run dev`.
+
+Перед каждым локальным commit pre-commit hook автоматически синхронизирует `.env` в `data/.env.vps`. Ошибка синхронизации блокирует commit. Не используйте `--no-verify`.
 
 Проверки: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`. `npm run smoke` ожидает запущенный сервер и не вызывает LLM.
 
