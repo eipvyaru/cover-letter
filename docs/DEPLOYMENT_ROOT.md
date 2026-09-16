@@ -331,6 +331,22 @@ nginx -t
 systemctl reload nginx
 ```
 
+После получения сертификата проверьте, что Certbot управляет им, включите системный таймер автообновления и выполните тестовое продление:
+
+```bash
+certbot certificates
+systemctl enable --now certbot.timer
+systemctl status certbot.timer --no-pager
+systemctl list-timers certbot.timer --no-pager
+certbot renew --dry-run
+```
+
+В выводе `certbot certificates` должен присутствовать `cover-letter.ai-run.ru`, таймер должен иметь состояние `active (waiting)`, а `certbot renew --dry-run` — завершиться без ошибок. Если проверка не прошла, не завершайте deployment; изучите журнал:
+
+```bash
+journalctl -u certbot.service -n 100 --no-pager
+```
+
 Конфигурации других сайтов не изменяйте. Порты `8791` и `8792` наружу не открывайте.
 
 ## 14. Проверка production
