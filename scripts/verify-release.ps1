@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
-$expectedNodeVersion = 'v24.18.0'
+$expectedNodeVersion = 'v24.21.0'
 $verificationRoot = Join-Path ([IO.Path]::GetTempPath()) ("cover-letter-release-{0}" -f [guid]::NewGuid().ToString('N'))
 $worktreeAdded = $false
 $locationPushed = $false
