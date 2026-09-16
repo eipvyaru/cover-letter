@@ -2,6 +2,11 @@ $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $expectedNodeVersion = 'v24.18.0'
+$verificationRoot = Join-Path ([IO.Path]::GetTempPath()) ("cover-letter-release-{0}" -f [guid]::NewGuid().ToString('N'))
+$worktreeAdded = $false
+$locationPushed = $false
+$failureMessage = $null
+
 Set-Location -LiteralPath $repositoryRoot
 
 function Invoke-CheckedCommand {
@@ -20,7 +25,7 @@ function Invoke-CheckedCommand {
 }
 
 try {
-    Write-Host "==> Node.js version"
+    Write-Host '==> Node.js version'
     $nodeVersionOutput = & node --version
     if ($LASTEXITCODE -ne 0) {
         throw "node --version failed with exit code $LASTEXITCODE."
@@ -30,13 +35,6 @@ try {
     if ($nodeVersion -ne $expectedNodeVersion) {
         throw "Expected Node.js $expectedNodeVersion, received $nodeVersion."
     }
-
-    Invoke-CheckedCommand 'Clean dependency installation' { npm ci }
-    Invoke-CheckedCommand 'Database migrations' { npm run db:migrate }
-    Invoke-CheckedCommand 'Lint' { npm run lint }
-    Invoke-CheckedCommand 'TypeScript typecheck' { npm run typecheck }
-    Invoke-CheckedCommand 'Automated tests' { npm test }
-    Invoke-CheckedCommand 'Production build' { npm run build }
 
     Write-Host "`n==> Git worktree status"
     $statusLines = @(git status --short)
@@ -66,11 +64,45 @@ try {
         throw "git log failed with exit code $LASTEXITCODE."
     }
 
-    Write-Host "`nREADY: this commit passed all local checks and is ready for manual push to GitHub and deployment to the VPS." -ForegroundColor Green
-    exit 0
+    Invoke-CheckedCommand 'Create isolated verification worktree' {
+        git worktree add --detach $verificationRoot HEAD
+    }
+    $worktreeAdded = $true
+
+    Push-Location -LiteralPath $verificationRoot
+    $locationPushed = $true
+
+    Invoke-CheckedCommand 'Clean dependency installation' { npm ci }
+    Invoke-CheckedCommand 'Database migrations' { npm run db:migrate }
+    Invoke-CheckedCommand 'Lint' { npm run lint }
+    Invoke-CheckedCommand 'TypeScript typecheck' { npm run typecheck }
+    Invoke-CheckedCommand 'Automated tests' { npm test }
+    Invoke-CheckedCommand 'Production build' { npm run build }
 }
 catch {
-    Write-Host "`nNOT READY: $($_.Exception.Message)" -ForegroundColor Red
+    $failureMessage = $_.Exception.Message
+}
+finally {
+    if ($locationPushed) {
+        Pop-Location
+        $locationPushed = $false
+    }
+
+    Set-Location -LiteralPath $repositoryRoot
+    if ($worktreeAdded) {
+        Write-Host "`n==> Remove isolated verification worktree"
+        & git worktree remove --force -- $verificationRoot
+        if ($LASTEXITCODE -ne 0 -and -not $failureMessage) {
+            $failureMessage = "Unable to remove verification worktree; git exited with code $LASTEXITCODE."
+        }
+    }
+}
+
+if ($failureMessage) {
+    Write-Host "`nNOT READY: $failureMessage" -ForegroundColor Red
     Write-Host 'Do not push this commit to GitHub or deploy it to the VPS until the checks pass.' -ForegroundColor Red
     exit 1
 }
+
+Write-Host "`nREADY: this commit passed all local checks and is ready for manual push to GitHub and deployment to the VPS." -ForegroundColor Green
+exit 0
