@@ -159,7 +159,7 @@ Playwright renderer архитектурно предусмотрен и исп�
 LLM вызывается только сервером через OpenAI-совместимый `chat/completions` endpoint:
 
 ```text
-LLM_API_ENDPOINT=https://api.proxyapi.ru/v1
+LLM_API_ENDPOINT=https://api.kodikrouter.ru/v1
 LLM_DEFAULT_MODEL=openai/gpt-5.6-luna
 ```
 
@@ -259,14 +259,16 @@ HISTORY_RETENTION_DAYS=30
 
 Токены берутся исключительно из `usage` ответов провайдера. Usage основной генерации и quality check суммируется.
 
-Стоимость рассчитывается best-effort по каталогу ProxyAPI и курсу ЦБ РФ с кэшем на 6 часов:
+Стоимость рассчитывается best-effort по публичному каталогу KodikRouter и курсу ЦБ РФ с кэшем на 6 часов. Цены каталога уже включают наценку маршрутизатора:
 
 ```text
-rub = 2 × (inputTokens × inputPrice + outputTokens × outputPrice) / 1 000 000
-usd = rub / usdRubRate
+usd = (inputTokens × inputUsdPrice + outputTokens × outputUsdPrice) / 1 000 000
+rub = usd × usdRubRate
 ```
 
 Недоступная цена, курс или usage создают warning, но не ломают генерацию.
+
+Текущий баланс организации запрашивается после каждой попытки генерации, включая завершившуюся ошибкой, методом `GET https://api.kodikrouter.ru/v1/billing/summary` с серверной Bearer-авторизацией. Из ответа используется `credit_balance` только при `currency=RUB`; ключ и остальные биллинговые данные клиенту не передаются. При ошибке API интерфейс выводит `Текущий баланс = недоступен`.
 
 ## 13. Авторизация и безопасность
 

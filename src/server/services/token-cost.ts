@@ -1,22 +1,20 @@
 import type {TokenCost} from '@/shared/types';
 
-type Price={inputRubPerMillion:number;outputRubPerMillion:number};
-type Rate={value:number;date:string};
+export type Price={inputUsdPerMillion:number;outputUsdPerMillion:number};
+export type Rate={value:number;date:string};
 const priceCache=new Map<string,{expiresAt:number;price:Price}>();
 let cachedRate:({expiresAt:number}&Rate)|undefined;
 
-function numberFromRussian(value:string){return Number(value.replace(/[^\d,]/g,'').replace(',','.'));}
+export const KODIKROUTER_CATALOG_URL='https://api.kodikrouter.ru/v1/catalog/models';
+export function kodikRouterModelUrl(modelId:string){return `${KODIKROUTER_CATALOG_URL}/${encodeURIComponent(modelId)}`;}
 
 async function getModelPrice(modelId:string):Promise<Price>{
  const cached=priceCache.get(modelId);if(cached&&cached.expiresAt>Date.now())return cached.price;
- const response=await fetch(`https://proxyapi.ru/models/${modelId}`,{headers:{'User-Agent':'HRLetter/1.0'},signal:AbortSignal.timeout(10000),cache:'no-store'});
- if(!response.ok)throw new Error(`каталог ProxyAPI ответил HTTP ${response.status}`);
- const html=await response.text();
- const text=html.replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/g,' ').replace(/\s+/g,' ');
- const pair=text.match(/Ввод\s*\/\s*Вывод\s*([\d\s]+(?:,\d+)?)\s*₽\s*\/\s*([\d\s]+(?:,\d+)?)\s*₽/i);
- if(!pair)throw new Error('в каталоге ProxyAPI не найдены цены модели');
- const price={inputRubPerMillion:numberFromRussian(pair[1]),outputRubPerMillion:numberFromRussian(pair[2])};
- if(!price.inputRubPerMillion||!price.outputRubPerMillion)throw new Error('каталог ProxyAPI вернул некорректные цены');
+ const response=await fetch(kodikRouterModelUrl(modelId),{headers:{'User-Agent':'HRLetter/1.0'},signal:AbortSignal.timeout(10000),cache:'no-store'});
+ if(!response.ok)throw new Error(`каталог KodikRouter ответил HTTP ${response.status}`);
+ const data=await response.json() as {input_price_per_1m?:unknown;output_price_per_1m?:unknown};
+ const price={inputUsdPerMillion:Number(data.input_price_per_1m),outputUsdPerMillion:Number(data.output_price_per_1m)};
+ if(!Number.isFinite(price.inputUsdPerMillion)||price.inputUsdPerMillion<0||!Number.isFinite(price.outputUsdPerMillion)||price.outputUsdPerMillion<0||(price.inputUsdPerMillion===0&&price.outputUsdPerMillion===0))throw new Error('каталог KodikRouter вернул некорректные цены');
  priceCache.set(modelId,{price,expiresAt:Date.now()+6*60*60*1000});return price;
 }
 
@@ -32,10 +30,14 @@ export async function getUsdRubRate():Promise<Rate>{
  cachedRate={value,date:date?.[1]||new Date().toLocaleDateString('ru-RU'),expiresAt:Date.now()+6*60*60*1000};return cachedRate;
 }
 
+export function estimateTokenCost(input:number,output:number,price:Price,rate:Rate):TokenCost{
+ const usd=(input*price.inputUsdPerMillion+output*price.outputUsdPerMillion)/1_000_000,rub=usd*rate.value;
+ return {rub,usd,usdRubRate:rate.value,rateDate:rate.date,inputTokens:input,outputTokens:output,inputRubPerMillion:price.inputUsdPerMillion*rate.value,outputRubPerMillion:price.outputUsdPerMillion*rate.value,multiplier:1};
+}
+
 export async function calculateTokenCost(modelId:string,statistics:Record<string,number|null>):Promise<TokenCost|undefined>{
  const input=(statistics.inputTokens||0)+(statistics.qualityInputTokens||0),output=(statistics.outputTokens||0)+(statistics.qualityOutputTokens||0);
  if(!input&&!output)return undefined;
  const [price,rate]=await Promise.all([getModelPrice(modelId),getUsdRubRate()]);
- const multiplier=2,rub=multiplier*(input*price.inputRubPerMillion+output*price.outputRubPerMillion)/1_000_000;
- return {rub,usd:rub/rate.value,usdRubRate:rate.value,rateDate:rate.date,inputTokens:input,outputTokens:output,inputRubPerMillion:price.inputRubPerMillion,outputRubPerMillion:price.outputRubPerMillion,multiplier};
+ return estimateTokenCost(input,output,price,rate);
 }

@@ -84,7 +84,7 @@
 
 Результат:
 
-- ProxyAPI-совместимый серверный клиент;
+- KodikRouter-совместимый серверный клиент;
 - серверный allowlist моделей и default `openai/gpt-5.6-luna`;
 - чтение внешнего системного промпта с version/hash;
 - structured user payload и защита от prompt injection;
@@ -93,7 +93,8 @@
 - серверное добавление контактов;
 - отдельный JSON quality check;
 - usage aggregation;
-- best-effort стоимость по ProxyAPI и ЦБ РФ.
+- best-effort стоимость по публичному каталогу KodikRouter и ЦБ РФ;
+- получение рублёвого баланса через `GET /v1/billing/summary` после каждого выполнения, включая ошибочное.
 
 Проверка: mock provider, timeout, redirects disabled, malformed result, warning/error paths, отсутствие temperature для неподдерживающей модели и отсутствие ключа в браузерном bundle.
 

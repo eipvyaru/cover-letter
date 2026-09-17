@@ -2,7 +2,8 @@ import {describe,expect,it,vi} from 'vitest';
 import {isPublicAddress,validateUrl} from '@/server/services/safe-fetch';
 import {ensureResumeContacts} from '@/server/services/contacts';
 import {parseResult} from '@/server/services/result-parser';
-import {fetchProxyApiBalance,PROXYAPI_BALANCE_URL} from '@/server/services/proxyapi-balance';
+import {fetchKodikRouterBalance,KODIKROUTER_BALANCE_URL} from '@/server/services/kodikrouter-balance';
+import {estimateTokenCost,kodikRouterModelUrl} from '@/server/services/token-cost';
 
 describe('SSRF validation',()=>{
  it.each(['http://127.0.0.1','http://[::1]','file:///etc/passwd','http://user:pass@example.com','http://example.local','http://example.com:8080'])('rejects %s',url=>expect(()=>validateUrl(url)).toThrow());
@@ -15,13 +16,21 @@ describe('result processing',()=>{
  it('parses required sections',()=>{const raw=['АНАЛИЗ ДАННЫХ','Вакансия: Разработчик\nКомпания: Тест','ВЫЯВЛЕННЫЕ СТРАХИ РАБОТОДАТЕЛЯ','1. Риск 1\n2. Риск 2\n3. Риск 3','СОПОСТАВЛЕНИЕ С РЕЗЮМЕ','Риск 1 | Опыт | высокая','ИТОГОВОЕ СОПРОВОДИТЕЛЬНОЕ ПИСЬМО','Письмо','ИСПОЛЬЗОВАННЫЕ ИСТОЧНИКИ','Вакансия и резюме','СТАТИСТИКА','Готово'].join('\n');expect(parseResult(raw).letter).toContain('Письмо');});
 });
 
-describe('ProxyAPI balance',()=>{
- it('requests the fixed balance endpoint with GET and bearer authorization',async()=>{
-  const request=vi.fn(async()=>Response.json({balance:123.45}));
-  await expect(fetchProxyApiBalance({LLM_API_KEY:'secret'},request)).resolves.toBe(123.45);
-  expect(request).toHaveBeenCalledWith(PROXYAPI_BALANCE_URL,expect.objectContaining({method:'GET',headers:{Authorization:'Bearer secret'},cache:'no-store',redirect:'manual'}));
+describe('KodikRouter pricing',()=>{
+ it('builds an encoded public model-catalog URL',()=>expect(kodikRouterModelUrl('openai/gpt-5.6-luna')).toBe('https://api.kodikrouter.ru/v1/catalog/models/openai%2Fgpt-5.6-luna'));
+ it('converts catalog USD prices to rubles without an extra multiplier',()=>{
+  const cost=estimateTokenCost(1_000_000,1_000_000,{inputUsdPerMillion:.2,outputUsdPerMillion:1.2},{value:100,date:'01.01.2026'});
+  expect(cost).toMatchObject({usd:1.4,rub:140,inputRubPerMillion:20,outputRubPerMillion:120,multiplier:1});
  });
- it('rejects a response without a numeric balance',async()=>{
-  await expect(fetchProxyApiBalance({LLM_API_KEY:'secret'},async()=>Response.json({balance:'123'}))).rejects.toThrow('некорректный баланс');
+});
+
+describe('KodikRouter balance',()=>{
+ it('requests billing summary with GET and bearer authorization',async()=>{
+  const request=vi.fn(async()=>Response.json({credit_balance:'123.45',currency:'RUB'}));
+  await expect(fetchKodikRouterBalance({LLM_API_KEY:'secret'},request)).resolves.toBe(123.45);
+  expect(request).toHaveBeenCalledWith(KODIKROUTER_BALANCE_URL,expect.objectContaining({method:'GET',headers:{Authorization:'Bearer secret'},cache:'no-store',redirect:'manual'}));
+ });
+ it('rejects a non-RUB or malformed balance',async()=>{
+  await expect(fetchKodikRouterBalance({LLM_API_KEY:'secret'},async()=>Response.json({credit_balance:'unknown',currency:'RUB'}))).rejects.toThrow('некорректный баланс');
  });
 });
