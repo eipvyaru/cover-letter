@@ -1,0 +1,7 @@
+footer{align-items:center}
+.footer-meta{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:12px}
+.footer-link{display:inline-flex;align-items:center;gap:5px;color:#657187;text-decoration:none}
+.footer-link:hover{color:#245de9;text-decoration:underline}
+.metrika-informer{display:inline-flex;width:80px;height:15px}
+.metrika-informer img{display:block;border:0}
+@media(max-width:900px){.footer-meta{justify-content:flex-start}}
