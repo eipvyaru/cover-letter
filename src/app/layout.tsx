@@ -7,10 +7,6 @@ import "./footer.css";
 export const metadata: Metadata = {
   title: "Сопроводительное письмо — AI-помощник",
   description: "Персональное письмо на основе вакансии и подтверждённого опыта.",
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-  },
 };
 
 export default function RootLayout({
