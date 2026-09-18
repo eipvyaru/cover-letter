@@ -23,7 +23,7 @@ Playwright не устанавливается. Порт `8791` остаётся
 
 Используйте согласованные значения и замените оставшиеся placeholders:
 
-- `<GITHUB_REPOSITORY>` — SSH URL приватного GitHub-репозитория;
+- GitHub-репозиторий — `git@github-cover-letter:eipvyaru/cover-letter.git`;
 - VPS: `170.168.112.47`, SSH-порт: `22`;
 - локальный SSH-ключ для VPS: `$env:USERPROFILE\.ssh\id_ed25519_vps`;
 - `<RELEASE_COMMIT>` — полный hash проверенного коммита;
@@ -102,7 +102,7 @@ command -v npm
 
 ```bash
 apt-get update
-apt-get install -y git nginx certbot python3-certbot-nginx curl
+apt-get install -y git nginx certbot python3-certbot-nginx curl nano
 ```
 
 ## 6. Каталоги
@@ -153,6 +153,12 @@ chmod 0600 /root/.ssh/known_hosts
 
 Создайте `/root/.ssh/config`:
 
+```bash
+nano /root/.ssh/config
+```
+
+`nano` создаст файл, если его ещё нет. Вставьте:
+
 ```sshconfig
 Host github-cover-letter
     HostName github.com
@@ -162,10 +168,39 @@ Host github-cover-letter
     StrictHostKeyChecking yes
 ```
 
+Сохраните файл в `nano`:
+
+```text
+Ctrl+O
+Enter
+Ctrl+X
+```
+
+Затем обязательно выставьте правильные права:
+
 ```bash
 chmod 0600 /root/.ssh/config
+```
+
+Проверьте существование и права:
+
+```bash
+ls -l /root/.ssh/config
+```
+
+Ожидаемо:
+
+```text
+-rw------- 1 root root ... /root/.ssh/config
+```
+
+Проверьте настройку:
+
+```bash
 ssh -T github-cover-letter
 ```
+
+Если Deploy Key уже добавлен в GitHub, должно появиться сообщение `successfully authenticated`. GitHub не предоставляет shell, поэтому успешная команда `ssh -T` штатно завершается с кодом `1`; это не ошибка настройки ключа.
 
 Для этого alias URL репозитория имеет вид:
 
@@ -175,10 +210,11 @@ git@github-cover-letter:owner/cover-letter.git
 
 ## 8. Клонирование проекта
 
-При первом deployment `/var/www/cover-letter` должен быть пустым:
+При первом deployment `/var/www/cover-letter` должен быть пустым. Проверьте каталог:
 
 ```bash
-git clone <GITHUB_REPOSITORY> /var/www/cover-letter
+ls -la /var/www/cover-letter
+git clone git@github-cover-letter:eipvyaru/cover-letter.git /var/www/cover-letter
 cd /var/www/cover-letter
 git checkout main
 git rev-parse HEAD
@@ -330,18 +366,104 @@ nginx -t
 systemctl reload nginx
 ```
 
-Если сертификата ещё нет, сначала создайте временный HTTP-only server block для `cover-letter.ai-run.ru`, проверьте DNS и HTTP, затем:
+Если сертификата ещё нет, выполните следующие шаги.
+
+### 13.1. Временная HTTP-конфигурация
+
+Создайте временный HTTP-only конфиг Nginx:
+
+```bash
+nano /etc/nginx/sites-available/cover-letter-http.conf
+```
+
+Вставьте:
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+
+    server_name cover-letter.ai-run.ru;
+
+    location / {
+        proxy_pass http://127.0.0.1:8792;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Сохраните файл:
+
+```text
+Ctrl+O
+Enter
+Ctrl+X
+```
+
+Включите временный сайт, проверьте конфигурацию и только после успешной проверки перезагрузите Nginx:
+
+```bash
+ln -sfn \
+  /etc/nginx/sites-available/cover-letter-http.conf \
+  /etc/nginx/sites-enabled/cover-letter-http.conf
+nginx -t
+systemctl reload nginx
+```
+
+Не удаляйте и не изменяйте конфигурации других сайтов. Схема на этом этапе: `cover-letter.ai-run.ru → Nginx :80 → 127.0.0.1:8792`; порт `8792` наружу не открывается.
+
+### 13.2. Проверка HTTP
+
+Сначала проверьте backend напрямую:
+
+```bash
+curl --fail --silent --show-error http://127.0.0.1:8792/api/health
+curl --fail --silent --show-error http://127.0.0.1:8792/api/ready
+```
+
+Затем проверьте HTTP через Nginx и публичный DNS:
+
+```bash
+curl --fail --silent --show-error \
+  http://cover-letter.ai-run.ru/api/health
+```
+
+Ожидаемое тело ответа: `{"status":"ok"}`. Убедитесь, что `http://cover-letter.ai-run.ru` доступен также с внешнего компьютера. Если проверка не проходит, Certbot пока не запускайте.
+
+### 13.3. Получение сертификата
 
 ```bash
 certbot --nginx -d cover-letter.ai-run.ru
 ```
 
-После выпуска сертификата установите конфигурацию из репозитория и выполните:
+После успешного выпуска сертификата установите финальный конфиг из репозитория, включите его и удалите только временный symlink этого проекта:
 
 ```bash
+install -o root -g root -m 0644 \
+  /var/www/cover-letter/deploy/nginx/cover-letter.conf \
+  /etc/nginx/sites-available/cover-letter.conf
+ln -sfn \
+  /etc/nginx/sites-available/cover-letter.conf \
+  /etc/nginx/sites-enabled/cover-letter.conf
+rm -f /etc/nginx/sites-enabled/cover-letter-http.conf
 nginx -t
 systemctl reload nginx
 ```
+
+Проверьте HTTPS:
+
+```bash
+curl --fail --silent --show-error \
+  https://cover-letter.ai-run.ru/api/health
+```
+
+Ожидаемое тело ответа: `{"status":"ok"}`. Проверка не зависит от того, согласовал ли клиент HTTP/1.1 или HTTP/2.
+
+### 13.4. Автоматическое обновление сертификата
 
 После получения сертификата проверьте, что Certbot управляет им, включите системный таймер автообновления и выполните тестовое продление:
 
