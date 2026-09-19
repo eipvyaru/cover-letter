@@ -545,18 +545,35 @@ if ($remoteCommit -ne $releaseCommit) {
 Write-Host "GitHub подтверждён: $remoteCommit"
 ```
 
-Не продолжайте deployment, если `npm.cmd run verify:release`, `git push` или сравнение hash завершилось ошибкой. В следующих командах вместо `<RELEASE_COMMIT>` используйте подтверждённое значение `$releaseCommit`.
+Не продолжайте deployment, если `npm.cmd run verify:release`, `git push` или сравнение hash завершилось ошибкой. В следующих командах вместо `<RELEASE_COMMIT>` используйте подтверждённое значение `$releaseCommit`. Например: 2a9e81c1234567890abcdef1234567890abcdef1
 
 ### 15.3. Обновление VPS
 
 На VPS убедитесь, что системный backup актуален:
 
 ```bash
+set -euo pipefail
+
 cd /var/www/cover-letter
-git status --short
-git rev-parse HEAD
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "Рабочее дерево VPS содержит изменения:"
+  git status --short
+  exit 1
+fi
+
+PREVIOUS_COMMIT=$(git rev-parse HEAD)
+echo "PREVIOUS_COMMIT=$PREVIOUS_COMMIT"
+
 git fetch --prune origin
 git checkout --detach <RELEASE_COMMIT>
+# пример: git checkout --detach 2a9e81c1234567890abcdef1234567890abcdef1
+
+if [ "$(git rev-parse HEAD)" != "<RELEASE_COMMIT>" ]; then
+  echo "На VPS выбран commit, отличный от RELEASE_COMMIT"
+  exit 1
+fi
+
 npm ci
 npm run lint
 npm run typecheck
@@ -569,7 +586,7 @@ curl --fail --silent http://127.0.0.1:8792/api/ready
 curl --fail --silent https://cover-letter.ai-run.ru/api/health
 ```
 
-Обычное обновление не заменяет `.env`, SQLite или системный prompt.
+Перед продолжением сохраните выведенное значение `PREVIOUS_COMMIT`: оно потребуется для отката. Благодаря `set -euo pipefail` deployment прекращается при первой ошибке. Обычное обновление не заменяет `.env`, SQLite или системный prompt.
 
 ## 16. Откат
 
