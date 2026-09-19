@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "node scripts/start-production.mjs",
     "lint": "eslint . --ignore-pattern .next",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "db:migrate": "node scripts/migrate.mjs",
     "smoke": "node scripts/smoke.mjs",
