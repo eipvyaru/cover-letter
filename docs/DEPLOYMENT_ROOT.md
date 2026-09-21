@@ -276,6 +276,8 @@ rm -f /root/cover-letter.env.new /root/cover-letter.prompt.new
 
 Не используйте `cat` или `diff` для проверки секретных файлов.
 
+После первого запуска приложение сохранит исходный `system_prompt.md` как версию в `/var/lib/cover-letter/prompt-history/` и создаст там `active.json`. Новые версии загружайте через настройки администратора и выбирайте текущую там же. После появления `active.json` ручная замена `system_prompt.md` не переключает активную версию. Для переноса версий между серверами переносите весь `prompt-history/` вместе с `active.json` защищённым способом. Ни одна версия промпта или `active.json` не должна попадать в GitHub.
+
 ## 10. Миграции
 
 ```bash
@@ -545,7 +547,7 @@ if ($remoteCommit -ne $releaseCommit) {
 Write-Host "GitHub подтверждён: $remoteCommit"
 ```
 
-Не продолжайте deployment, если `npm.cmd run verify:release`, `git push` или сравнение hash завершилось ошибкой. В следующих командах вместо `<RELEASE_COMMIT>` используйте подтверждённое значение `$releaseCommit`. Например: 2a9e81c1234567890abcdef1234567890abcdef1
+Не продолжайте deployment, если `npm.cmd run verify:release`, `git push` или сравнение hash завершилось ошибкой. В следующих командах вместо `<RELEASE_COMMIT>` используйте подтверждённое значение `$releaseCommit`. Пример значения: `24ae571121c55da517cb1bf294330a2cf3377c46`.
 
 ### 15.3. Обновление VPS
 
@@ -567,7 +569,7 @@ echo "PREVIOUS_COMMIT=$PREVIOUS_COMMIT"
 
 git fetch --prune origin
 git checkout --detach <RELEASE_COMMIT>
-# пример: git checkout --detach 2a9e81c1234567890abcdef1234567890abcdef1
+# пример: git checkout --detach 24ae571121c55da517cb1bf294330a2cf3377c46
 
 if [ "$(git rev-parse HEAD)" != "<RELEASE_COMMIT>" ]; then
   echo "На VPS выбран commit, отличный от RELEASE_COMMIT"
