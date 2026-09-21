@@ -20,3 +20,5 @@
 Проверки: `npm audit --audit-level=moderate`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`. `npm run smoke` ожидает запущенный сервер и не вызывает LLM.
 
 Production использует `/var/lib/cover-letter/system_prompt.md` и `/var/lib/cover-letter/cover-letter.sqlite`. Секреты, `data/`, рабочий промпт и БД запрещено добавлять в Git.
+
+Администратор открывает «Настройки» → «Системный промпт», загружает `.md`/`.txt` (до 200 КБ) и выбирает активную версию. Сервис показывает дату изменения исходного файла, сохраняет все версии в `data/prompt-history/` локально или `/var/lib/cover-letter/prompt-history/` на VPS и применяет выбор к следующим генерациям. При первом открытии списка исходный `system_prompt.md` автоматически сохраняется как первая версия. Ни одна рабочая версия не добавляется в Git.
