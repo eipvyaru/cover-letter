@@ -1,5 +1,5 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
-import {mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
+import {mkdtemp,readFile,rm,utimes,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 vi.mock('server-only',()=>({}));
@@ -17,6 +17,8 @@ describe('system prompt versions',()=>{
   const items=await addSystemPrompt(settings,updated,modifiedAt);
   expect(items).toHaveLength(2);expect(items.find(item=>item.modifiedAt===modifiedAt.toISOString())?.active).toBe(false);
   const next=items.find(item=>!item.active)!;
+  await utimes(join(directory,'prompt-history',next.id),new Date('2026-09-22T18:50:31.000Z'),new Date('2026-09-22T18:50:31.000Z'));
+  expect((await listSystemPrompts(settings)).find(item=>item.id===next.id)?.modifiedAt).toBe(modifiedAt.toISOString());
   await activateSystemPrompt(settings,next.id);
   expect((await loadSystemPrompt(settings)).content).toBe(updated.trim());
   expect((await readFile(path,'utf8'))).toBe(original);

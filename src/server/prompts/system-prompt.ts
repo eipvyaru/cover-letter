@@ -17,6 +17,13 @@ function validate(content:string){
  return content;
 }
 function fileName(date:Date){return `${date.toISOString().replace(/[-:.]/g,'')}_${randomUUID()}.md`;}
+function modifiedAtFromId(id:string){
+ const compact=id.slice(0,19);
+ const iso=compact.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(\d{3})Z$/,'$1-$2-$3T$4:$5:$6.$7Z');
+ const date=new Date(iso);
+ if(!Number.isFinite(date.getTime()))throw new Error('Некорректная дата версии системного промпта.');
+ return date.toISOString();
+}
 async function atomicWrite(path:string,content:string){
  const temporary=`${path}.${randomUUID()}.tmp`;
  try{await writeFile(temporary,content,{flag:'wx',mode:0o600});await rename(temporary,path);}finally{await unlink(temporary).catch(()=>{});}
@@ -43,10 +50,7 @@ export async function listSystemPrompts(settings:Settings){
  const {directory}=paths(settings);
  const activeId=await initialize(settings);
  const files=(await readdir(/* turbopackIgnore: true */ directory)).filter(name=>FILE_RE.test(name));
- const items=await Promise.all(files.map(async id=>{
-  const info=await stat(join(directory,id));
-  return {id,modifiedAt:info.mtime.toISOString(),active:id===activeId};
- }));
+ const items=files.map(id=>({id,modifiedAt:modifiedAtFromId(id),active:id===activeId}));
  return items.sort((a,b)=>b.modifiedAt.localeCompare(a.modifiedAt)||b.id.localeCompare(a.id));
 }
 export async function addSystemPrompt(settings:Settings,content:string,modifiedAt:Date){
