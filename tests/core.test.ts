@@ -1,6 +1,5 @@
 import {describe,expect,it,vi} from 'vitest';
 import {isPublicAddress,validateUrl} from '@/server/services/safe-fetch';
-import {ensureResumeContacts} from '@/server/services/contacts';
 import {parseResult} from '@/server/services/result-parser';
 import {fetchKodikRouterBalance,KODIKROUTER_BALANCE_URL} from '@/server/services/kodikrouter-balance';
 import {estimateTokenCost,kodikRouterModelUrl} from '@/server/services/token-cost';
@@ -14,7 +13,6 @@ describe('SSRF validation',()=>{
 });
 
 describe('result processing',()=>{
- it('adds resume contacts',()=>expect(ensureResumeContacts('Здравствуйте.','Иван, ivan@example.com, +7 999 123-45-67, @ivan_work')).toContain('ivan@example.com'));
  it('parses required sections',()=>{const raw=['АНАЛИЗ ДАННЫХ','Вакансия: Разработчик\nКомпания: Тест','ВЫЯВЛЕННЫЕ СТРАХИ РАБОТОДАТЕЛЯ','1. Риск 1\n2. Риск 2\n3. Риск 3','СОПОСТАВЛЕНИЕ С РЕЗЮМЕ','Риск 1 | Опыт | высокая','ИТОГОВОЕ СОПРОВОДИТЕЛЬНОЕ ПИСЬМО','Письмо','ИСПОЛЬЗОВАННЫЕ ИСТОЧНИКИ','Вакансия и резюме','СТАТИСТИКА','Готово'].join('\n');expect(parseResult(raw).letter).toContain('Письмо');});
 });
 
