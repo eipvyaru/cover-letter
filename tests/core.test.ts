@@ -4,6 +4,8 @@ import {ensureResumeContacts} from '@/server/services/contacts';
 import {parseResult} from '@/server/services/result-parser';
 import {fetchKodikRouterBalance,KODIKROUTER_BALANCE_URL} from '@/server/services/kodikrouter-balance';
 import {estimateTokenCost,kodikRouterModelUrl} from '@/server/services/token-cost';
+import {cookieAttributes} from '@/server/services/admin-auth';
+vi.mock('server-only',()=>({}));
 
 describe('SSRF validation',()=>{
  it.each(['http://127.0.0.1','http://[::1]','file:///etc/passwd','http://user:pass@example.com','http://example.local','http://example.com:8080'])('rejects %s',url=>expect(()=>validateUrl(url)).toThrow());
@@ -33,4 +35,9 @@ describe('KodikRouter balance',()=>{
  it('rejects a non-RUB or malformed balance',async()=>{
   await expect(fetchKodikRouterBalance({LLM_API_KEY:'secret'},async()=>Response.json({credit_balance:'unknown',currency:'RUB'}))).rejects.toThrow('некорректный баланс');
  });
+});
+
+describe('administrator session cookie',()=>{
+ it('allows the cookie on a local HTTP preview',()=>expect(cookieAttributes(new Request('http://127.0.0.1:8792/'))).not.toContain('Secure'));
+ it('keeps the cookie secure for the public service',()=>expect(cookieAttributes(new Request('https://cover-letter.ai-run.ru/'))).toContain('Secure'));
 });
