@@ -549,6 +549,15 @@ Write-Host "GitHub подтверждён: $remoteCommit"
 
 Не продолжайте deployment, если `npm.cmd run verify:release`, `git push` или сравнение hash завершилось ошибкой. В следующих командах вместо `<RELEASE_COMMIT>` используйте подтверждённое значение `$releaseCommit`. Пример значения: `2d3281cee68e02d0de39a7b3ce13f28044eeaadc`.
 
+После подключения к VPS задайте подтверждённый commit один раз и выполняйте подразделы 15.3–15.4 в том же shell-сеансе:
+
+```bash
+RELEASE_COMMIT=<RELEASE_COMMIT>
+test -n "$RELEASE_COMMIT"
+```
+
+Например: `RELEASE_COMMIT=2d3281cee68e02d0de39a7b3ce13f28044eeaadc`. В остальных VPS-командах значение берётся из переменной `$RELEASE_COMMIT`.
+
 ### 15.3. Передача версий системного промпта
 
 Этот шаг выполняйте, когда локально добавлены версии в `C:\_Codex\cover-letter\data\prompt-history`. Файлы промптов не передаются через GitHub. В том же окне PowerShell создайте staging-каталог на VPS и скопируйте туда все версии вместе с указателем активной версии:
@@ -583,15 +592,16 @@ if ($LASTEXITCODE -ne 0) { throw 'Не удалось передать active.js
 Write-Host "PROMPT_STAGE=$promptStage"
 ```
 
-На VPS используйте выведенное значение `PROMPT_STAGE`, заменив `<RELEASE_COMMIT>` подтверждённым hash:
+На VPS продолжайте в том же shell-сеансе:
 
 ```bash
 set -euo pipefail
 
-PROMPT_STAGE=/root/cover-letter-prompts-<RELEASE_COMMIT>
+test -n "${RELEASE_COMMIT:-}"
+PROMPT_STAGE="/root/cover-letter-prompts-$RELEASE_COMMIT"
 PROMPT_TARGET=/var/lib/cover-letter/prompt-history
 
-test "$PROMPT_STAGE" = "/root/cover-letter-prompts-<RELEASE_COMMIT>"
+test "$PROMPT_STAGE" = "/root/cover-letter-prompts-$RELEASE_COMMIT"
 test -d "$PROMPT_STAGE"
 test -s "$PROMPT_STAGE/active.json"
 
@@ -625,6 +635,8 @@ rm -rf -- "$PROMPT_STAGE"
 ```bash
 set -euo pipefail
 
+test -n "${RELEASE_COMMIT:-}"
+
 cd /var/www/cover-letter
 
 if [ -n "$(git status --porcelain)" ]; then
@@ -637,10 +649,9 @@ PREVIOUS_COMMIT=$(git rev-parse HEAD)
 echo "PREVIOUS_COMMIT=$PREVIOUS_COMMIT"
 
 git fetch --prune origin
-git checkout --detach <RELEASE_COMMIT>
-# пример: git checkout --detach 2d3281cee68e02d0de39a7b3ce13f28044eeaadc
+git checkout --detach "$RELEASE_COMMIT"
 
-if [ "$(git rev-parse HEAD)" != "<RELEASE_COMMIT>" ]; then
+if [ "$(git rev-parse HEAD)" != "$RELEASE_COMMIT" ]; then
   echo "На VPS выбран commit, отличный от RELEASE_COMMIT"
   exit 1
 fi
