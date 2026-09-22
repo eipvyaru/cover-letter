@@ -547,9 +547,78 @@ if ($remoteCommit -ne $releaseCommit) {
 Write-Host "GitHub подтверждён: $remoteCommit"
 ```
 
-Не продолжайте deployment, если `npm.cmd run verify:release`, `git push` или сравнение hash завершилось ошибкой. В следующих командах вместо `<RELEASE_COMMIT>` используйте подтверждённое значение `$releaseCommit`. Пример значения: `24ae571121c55da517cb1bf294330a2cf3377c46`.
+Не продолжайте deployment, если `npm.cmd run verify:release`, `git push` или сравнение hash завершилось ошибкой. В следующих командах вместо `<RELEASE_COMMIT>` используйте подтверждённое значение `$releaseCommit`. Пример значения: `2d3281cee68e02d0de39a7b3ce13f28044eeaadc`.
 
-### 15.3. Обновление VPS
+### 15.3. Передача версий системного промпта
+
+Этот шаг выполняйте, когда локально добавлены версии в `C:\_Codex\cover-letter\data\prompt-history`. Файлы промптов не передаются через GitHub. В том же окне PowerShell создайте staging-каталог на VPS и скопируйте туда все версии вместе с указателем активной версии:
+
+```powershell
+cd C:\_Codex\cover-letter
+
+$promptSource = (Resolve-Path -LiteralPath '.\data\prompt-history').Path
+$activePrompt = Join-Path $promptSource 'active.json'
+if (-not (Test-Path -LiteralPath $activePrompt -PathType Leaf)) {
+  throw 'Не найден data\prompt-history\active.json. Сначала выберите текущий промпт в настройках администратора.'
+}
+
+$promptFiles = @(Get-ChildItem -LiteralPath $promptSource -File -Filter '*.md')
+if ($promptFiles.Count -eq 0) { throw 'В data\prompt-history нет версий промпта.' }
+
+$promptStage = "/root/cover-letter-prompts-$releaseCommit"
+ssh -i "$env:USERPROFILE\.ssh\id_ed25519_vps" -p 22 root@170.168.112.47 `
+  "install -d -o root -g root -m 0700 '$promptStage'"
+if ($LASTEXITCODE -ne 0) { throw 'Не удалось создать staging-каталог для промптов.' }
+
+foreach ($file in $promptFiles) {
+  scp -i "$env:USERPROFILE\.ssh\id_ed25519_vps" -P 22 `
+    $file.FullName "root@170.168.112.47:${promptStage}/"
+  if ($LASTEXITCODE -ne 0) { throw "Не удалось передать версию промпта: $($file.Name)" }
+}
+
+scp -i "$env:USERPROFILE\.ssh\id_ed25519_vps" -P 22 `
+  $activePrompt "root@170.168.112.47:${promptStage}/active.json"
+if ($LASTEXITCODE -ne 0) { throw 'Не удалось передать active.json.' }
+
+Write-Host "PROMPT_STAGE=$promptStage"
+```
+
+На VPS используйте выведенное значение `PROMPT_STAGE`, заменив `<RELEASE_COMMIT>` подтверждённым hash:
+
+```bash
+set -euo pipefail
+
+PROMPT_STAGE=/root/cover-letter-prompts-<RELEASE_COMMIT>
+PROMPT_TARGET=/var/lib/cover-letter/prompt-history
+
+test "$PROMPT_STAGE" = "/root/cover-letter-prompts-<RELEASE_COMMIT>"
+test -d "$PROMPT_STAGE"
+test -s "$PROMPT_STAGE/active.json"
+
+install -d -o root -g root -m 0700 "$PROMPT_TARGET"
+
+prompt_count=0
+for file in "$PROMPT_STAGE"/*.md; do
+  [ -e "$file" ] || continue
+  install -o root -g root -m 0600 \
+    "$file" "$PROMPT_TARGET/$(basename "$file")"
+  prompt_count=$((prompt_count + 1))
+done
+[ "$prompt_count" -gt 0 ]
+
+install -o root -g root -m 0600 \
+  "$PROMPT_STAGE/active.json" "$PROMPT_TARGET/active.json.new"
+mv "$PROMPT_TARGET/active.json.new" "$PROMPT_TARGET/active.json"
+
+find "$PROMPT_TARGET" -maxdepth 1 -type f \
+  -printf '%u:%g %m %TY-%Tm-%Td %TH:%TM:%TS %f\n'
+
+rm -rf -- "$PROMPT_STAGE"
+```
+
+Команды добавляют новые версии, не удаляя уже имеющиеся на VPS. `active.json` заменяется атомарно и переносит выбранную локально текущую версию. Не используйте `cat` или `diff`: содержимое промптов не должно попадать в терминальные логи.
+
+### 15.4. Обновление VPS
 
 На VPS убедитесь, что системный backup актуален:
 
@@ -569,7 +638,7 @@ echo "PREVIOUS_COMMIT=$PREVIOUS_COMMIT"
 
 git fetch --prune origin
 git checkout --detach <RELEASE_COMMIT>
-# пример: git checkout --detach 24ae571121c55da517cb1bf294330a2cf3377c46
+# пример: git checkout --detach 2d3281cee68e02d0de39a7b3ce13f28044eeaadc
 
 if [ "$(git rev-parse HEAD)" != "<RELEASE_COMMIT>" ]; then
   echo "На VPS выбран commit, отличный от RELEASE_COMMIT"
