@@ -1,5 +1,5 @@
 import {describe,expect,it,vi} from 'vitest';
-import {createPublicLookup,isAllowedSourceHost,isPublicAddress,parseSourceHostMasks,resolvePublicAddresses,validateUrl} from '@/server/services/safe-fetch';
+import {assertPublicUrl,createPublicLookup,isAllowedSourceHost,isPublicAddress,parseSourceHostMasks,resolvePublicAddresses,validateUrl} from '@/server/services/safe-fetch';
 import {parseResult} from '@/server/services/result-parser';
 import {extractText} from '@/server/services/html-parser';
 import {containsPromptLeak,prepareUntrustedContent,wrapUntrustedContent} from '@/server/services/untrusted-content';
@@ -13,23 +13,29 @@ describe('SSRF validation',()=>{
  it('accepts public https domains',()=>expect(validateUrl('https://hh.ru/vacancy/1').hostname).toBe('hh.ru'));
  it.each(['10.0.0.1','172.16.1.1','192.168.1.1','169.254.1.1','100.64.0.1'])('marks %s private',ip=>expect(isPublicAddress(ip)).toBe(false));
  it.each(['192.0.2.1','198.51.100.5','203.0.113.7','192.88.99.1'])('marks reserved address %s non-public',ip=>expect(isPublicAddress(ip)).toBe(false));
- it('supports an optional exact and wildcard host allowlist',()=>{
-  const masks='["hh.ru","*.example.com"]';
+ it('supports an optional anchored-regex host allowlist',()=>{
+  const masks='["^hh[.]ru$","^(?:[A-Za-z0-9-]+[.])*example[.]com$"]';
   expect(isAllowedSourceHost('hh.ru',masks)).toBe(true);
   expect(isAllowedSourceHost('jobs.example.com',masks)).toBe(true);
   expect(isAllowedSourceHost('evil-example.com',masks)).toBe(false);
  });
- const ruMasks='["*.^[A-Za-z][A-Za-z0-9-]*$.ru"]';
+ const ruMasks='["^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?[.])*[A-Za-z](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?[.]ru$"]';
  it.each(['a.ru','hh.ru','a1.ru','a-b.ru','api.hh.ru','deep.api.a-b.ru'])('accepts %s with the constrained .ru mask',host=>expect(isAllowedSourceHost(host,ruMasks)).toBe(true));
  it.each(['1a.ru','-ab.ru','ab-.ru','example.com','example.ru.evil.com','xn--e1afmkfd.ru'])('rejects %s with the constrained .ru mask',host=>expect(isAllowedSourceHost(host,ruMasks)).toBe(false));
  it('supports a set of masks whose first entry is the constrained .ru mask',()=>{
-  const masks='["*.^[A-Za-z][A-Za-z0-9-]*$.ru","*.example.com","careers.example.org"]';
+  const masks='["^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?[.])*[A-Za-z](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?[.]ru$","^(?:[A-Za-z0-9-]+[.])*example[.]com$","^careers[.]example[.]org$"]';
   expect(parseSourceHostMasks(masks)).toHaveLength(3);
   expect(isAllowedSourceHost('hh.ru',masks)).toBe(true);
   expect(isAllowedSourceHost('jobs.example.com',masks)).toBe(true);
   expect(isAllowedSourceHost('careers.example.org',masks)).toBe(true);
  });
  it('rejects malformed mask configuration',()=>expect(()=>parseSourceHostMasks('*.hh.ru')).toThrow('JSON-массивом'));
+ it('rejects an unanchored regex mask',()=>expect(()=>parseSourceHostMasks('[".*[.]ru"]')).toThrow('якорями'));
+ it('rejects an invalid anchored regex mask',()=>expect(()=>parseSourceHostMasks('["^([.]ru$"]')).toThrow('некорректное'));
+ it.each(['127.0.0.1','10.20.30.40','::1','169.254.169.254','fe80::1'])('does not let an allowlist match bypass SSRF protection for %s',async address=>{
+  const masks='["^.*[.](?:ru|com)$"]';
+  await expect(assertPublicUrl('https://allowed.com/path',masks,async()=>[{address,family:address.includes(':')?6:4}])).rejects.toThrow('закрытую сеть');
+ });
  it('rejects a private address returned at connection-time lookup',async()=>{
   const lookup=createPublicLookup(async()=>[{address:'127.0.0.1',family:4}]);
   await expect(new Promise<void>((resolve,reject)=>lookup('rebind.example',{},error=>error?reject(error):resolve()))).rejects.toThrow('закрытую сеть');

@@ -26,26 +26,22 @@ export function isAllowedSourceHost(hostname:string,configuration?:string){
  const rules=parseSourceHostMasks(configuration);
  if(!rules.length)return true;
  const host=hostname.toLowerCase();
- return rules.some(rule=>matchesSourceHostRule(host,rule));
+ if(!isHostname(host)||host.split('.').some(label=>label.startsWith('xn--')))return false;
+ return rules.some(rule=>new RegExp(rule,'i').test(host));
 }
 
 export function parseSourceHostMasks(configuration?:string){
  if(!configuration?.trim())return [];
  let value:unknown;try{value=JSON.parse(configuration);}catch{throw new Error('SOURCE_ALLOWED_HOST_MASKS_JSON должен быть JSON-массивом строк.');}
- if(!Array.isArray(value)||!value.length||value.length>100||value.some(rule=>typeof rule!=='string'||!rule.trim()||rule.length>200))throw new Error('SOURCE_ALLOWED_HOST_MASKS_JSON должен содержать от 1 до 100 непустых масок.');
- return value.map(rule=>(rule as string).trim().toLowerCase());
+ if(!Array.isArray(value)||!value.length||value.length>100||value.some(rule=>typeof rule!=='string'||!rule.trim()||rule.length>500))throw new Error('SOURCE_ALLOWED_HOST_MASKS_JSON должен содержать от 1 до 100 непустых anchored-regex масок.');
+ return value.map(rule=>{
+  const pattern=(rule as string).trim();
+  if(!pattern.startsWith('^')||!pattern.endsWith('$')||/[\r\n\0]/.test(pattern))throw new Error('Каждая маска источника должна быть anchored-regex с якорями ^ и $.');
+  try{new RegExp(pattern,'i');}catch{throw new Error('Маска источника содержит некорректное регулярное выражение.');}
+  return pattern;
+ });
 }
-
-function matchesSourceHostRule(host:string,rule:string){
- const constrainedRuMask=rule.match(/^\*\.\^\[a-za-z\]\[a-za-z0-9-\]\*\$\.([a-z]{2,63})$/i);
- if(constrainedRuMask){
-  const labels=host.split('.');const tld=labels.at(-1);const domain=labels.at(-2);
-  return labels.length>=2&&tld===constrainedRuMask[1].toLowerCase()&&!!domain&&!domain.startsWith('xn--')&&/^[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(domain)&&labels.slice(0,-2).every(isDnsLabel);
- }
- const suffix=rule.startsWith('*.')?rule.slice(2):rule;
- return isHostname(suffix)&&(host===suffix||(rule.startsWith('*.')&&host.endsWith(`.${suffix}`)));
-}
-function isHostname(value:string){return value.split('.').length>=2&&value.split('.').every(isDnsLabel);}
+function isHostname(value:string){return value.length<=253&&value.split('.').length>=2&&value.split('.').every(isDnsLabel);}
 function isDnsLabel(value:string){return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(value);}
 
 export async function resolvePublicAddresses(hostname:string,resolver:AddressResolver=resolveAll){
@@ -54,10 +50,10 @@ export async function resolvePublicAddresses(hostname:string,resolver:AddressRes
  return addresses;
 }
 
-export async function assertPublicUrl(value:string,allowedHosts?:string){
+export async function assertPublicUrl(value:string,allowedHosts?:string,resolver:AddressResolver=resolveAll){
  const url=validateUrl(value);
  if(!isAllowedSourceHost(url.hostname,allowedHosts))throw new Error('Домен источника не входит в список разрешённых.');
- await resolvePublicAddresses(url.hostname);
+ await resolvePublicAddresses(url.hostname,resolver);
  return url;
 }
 
