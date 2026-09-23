@@ -1,4 +1,4 @@
-import {assertPublicUrl,readLimited} from './safe-fetch';
+import {fetchPublicUrl,readLimited} from './safe-fetch';
 import {extractText} from './html-parser';
 import {headHunterVacancyEndpoint,headHunterVacancyText} from './head-hunter';
 import type {Attempt,Input,Source} from '@/shared/types';
@@ -11,11 +11,10 @@ function pageHeaders(env:Settings){return {
  'Accept-Language':'ru-RU,ru;q=0.9,en;q=0.7',
 };}
 
-async function requestWithRedirects(initialUrl:string,headers:Record<string,string>){
+async function requestWithRedirects(initialUrl:string,headers:Record<string,string>,allowedHosts?:string){
  let target=initialUrl;
  for(let redirects=0;redirects<6;redirects++){
-  await assertPublicUrl(target);
-  const response=await fetch(target,{redirect:'manual',headers,signal:AbortSignal.timeout(20000)});
+  const response=await fetchPublicUrl(target,{redirect:'manual',headers,signal:AbortSignal.timeout(20000)},allowedHosts);
   if([301,302,303,307,308].includes(response.status)){
    const location=response.headers.get('location');
    await response.body?.cancel();
@@ -42,14 +41,14 @@ export async function fetchSource(kind:'vacancy'|'resume',input:Input,env:Settin
  for(let attempt=1;attempt<=input.maxAttempts;attempt++){
   const start=Date.now();let status:number|null=null;let method='http';
   try{
-   let response=await requestWithRedirects(url,pageHeaders(env));status=response.status;
+   let response=await requestWithRedirects(url,pageHeaders(env),env.SOURCE_ALLOWED_HOSTS);status=response.status;
    if(!response.ok&&hhEndpoint){
     await response.body?.cancel();method='hh-api';
     response=await requestWithRedirects(hhEndpoint,{
      'User-Agent':`CoverLetter/1.0 (+${appUrl(env)})`,
      'HH-User-Agent':`CoverLetter/1.0 (+${appUrl(env)})`,
      'Accept':'application/json',
-    });
+    },env.SOURCE_ALLOWED_HOSTS);
     status=response.status;
    }
    if(!response.ok){
