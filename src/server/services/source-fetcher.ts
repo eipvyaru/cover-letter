@@ -41,14 +41,14 @@ export async function fetchSource(kind:'vacancy'|'resume',input:Input,env:Settin
  for(let attempt=1;attempt<=input.maxAttempts;attempt++){
   const start=Date.now();let status:number|null=null;let method='http';
   try{
-   let response=await requestWithRedirects(url,pageHeaders(env),env.SOURCE_ALLOWED_HOSTS);status=response.status;
+   let response=await requestWithRedirects(url,pageHeaders(env),env.SOURCE_ALLOWED_HOST_MASKS_JSON);status=response.status;
    if(!response.ok&&hhEndpoint){
     await response.body?.cancel();method='hh-api';
     response=await requestWithRedirects(hhEndpoint,{
      'User-Agent':`CoverLetter/1.0 (+${appUrl(env)})`,
      'HH-User-Agent':`CoverLetter/1.0 (+${appUrl(env)})`,
      'Accept':'application/json',
-    },env.SOURCE_ALLOWED_HOSTS);
+    },env.SOURCE_ALLOWED_HOST_MASKS_JSON);
     status=response.status;
    }
    if(!response.ok){

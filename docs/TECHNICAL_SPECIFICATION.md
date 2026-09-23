@@ -145,7 +145,7 @@ Playwright renderer архитектурно предусмотрен и исп�
 - допустимые типы: HTML, plain text, JSON, XHTML;
 - DNS/SSRF-проверка перед запросом и каждым redirect;
 - повторная проверка всех DNS-адресов непосредственно при установлении socket-соединения для защиты от DNS rebinding;
-- необязательный allowlist доменов через `SOURCE_ALLOWED_HOSTS`, например `hh.ru,*.hh.ru`.
+- allowlist доменов через JSON-массив `SOURCE_ALLOWED_HOST_MASKS_JSON`: первым элементом задана безопасная ограниченная маска `*.^[A-Za-z][A-Za-z0-9]*$.ru`, далее могут следовать дополнительные точные домены и wildcard-маски; произвольные регулярные выражения не выполняются.
 
 Запрещаются IP-literal, credentials, нестандартные порты, localhost, локальные псевдодомены, loopback, private, link-local, CGNAT, multicast и зарезервированные сети. Если хотя бы один A/AAAA-адрес непубличный, запрос отклоняется.
 
