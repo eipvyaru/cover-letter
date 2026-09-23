@@ -19,11 +19,11 @@ describe('SSRF validation',()=>{
   expect(isAllowedSourceHost('jobs.example.com',masks)).toBe(true);
   expect(isAllowedSourceHost('evil-example.com',masks)).toBe(false);
  });
- const ruMasks='["*.^[A-Za-z][A-Za-z0-9]*$.ru"]';
- it.each(['a.ru','hh.ru','a1.ru','api.hh.ru','deep.api.a1.ru'])('accepts %s with the constrained .ru mask',host=>expect(isAllowedSourceHost(host,ruMasks)).toBe(true));
- it.each(['1a.ru','a-b.ru','example.com','example.ru.evil.com','xn--e1afmkfd.ru'])('rejects %s with the constrained .ru mask',host=>expect(isAllowedSourceHost(host,ruMasks)).toBe(false));
+ const ruMasks='["*.^[A-Za-z][A-Za-z0-9-]*$.ru"]';
+ it.each(['a.ru','hh.ru','a1.ru','a-b.ru','api.hh.ru','deep.api.a-b.ru'])('accepts %s with the constrained .ru mask',host=>expect(isAllowedSourceHost(host,ruMasks)).toBe(true));
+ it.each(['1a.ru','-ab.ru','ab-.ru','example.com','example.ru.evil.com','xn--e1afmkfd.ru'])('rejects %s with the constrained .ru mask',host=>expect(isAllowedSourceHost(host,ruMasks)).toBe(false));
  it('supports a set of masks whose first entry is the constrained .ru mask',()=>{
-  const masks='["*.^[A-Za-z][A-Za-z0-9]*$.ru","*.example.com","careers.example.org"]';
+  const masks='["*.^[A-Za-z][A-Za-z0-9-]*$.ru","*.example.com","careers.example.org"]';
   expect(parseSourceHostMasks(masks)).toHaveLength(3);
   expect(isAllowedSourceHost('hh.ru',masks)).toBe(true);
   expect(isAllowedSourceHost('jobs.example.com',masks)).toBe(true);

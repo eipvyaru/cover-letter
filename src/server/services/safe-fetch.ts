@@ -37,10 +37,10 @@ export function parseSourceHostMasks(configuration?:string){
 }
 
 function matchesSourceHostRule(host:string,rule:string){
- const constrainedRuMask=rule.match(/^\*\.\^\[a-za-z\]\[a-za-z0-9\]\*\$\.([a-z]{2,63})$/i);
+ const constrainedRuMask=rule.match(/^\*\.\^\[a-za-z\]\[a-za-z0-9-\]\*\$\.([a-z]{2,63})$/i);
  if(constrainedRuMask){
   const labels=host.split('.');const tld=labels.at(-1);const domain=labels.at(-2);
-  return labels.length>=2&&tld===constrainedRuMask[1].toLowerCase()&&!!domain&&/^[a-z][a-z0-9]*$/.test(domain)&&labels.slice(0,-2).every(isDnsLabel);
+  return labels.length>=2&&tld===constrainedRuMask[1].toLowerCase()&&!!domain&&!domain.startsWith('xn--')&&/^[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(domain)&&labels.slice(0,-2).every(isDnsLabel);
  }
  const suffix=rule.startsWith('*.')?rule.slice(2):rule;
  return isHostname(suffix)&&(host===suffix||(rule.startsWith('*.')&&host.endsWith(`.${suffix}`)));
