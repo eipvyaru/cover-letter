@@ -552,7 +552,7 @@ Write-Host "GitHub подтверждён: $remoteCommit"
 После подключения к VPS задайте подтверждённый commit один раз и выполняйте подразделы 15.3–15.4 в том же shell-сеансе:
 
 ```bash
-RELEASE_COMMIT=<RELEASE_COMMIT>
+read -r -p 'RELEASE_COMMIT: ' RELEASE_COMMIT
 test -n "$RELEASE_COMMIT"
 ```
 
