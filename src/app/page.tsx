@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 import {useCallback,useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
 import {ArrowUpRight,FileText,Sparkles,History,ShieldCheck,Link2,LoaderCircle,Download,Trash2,GitFork as Github} from 'lucide-react';
